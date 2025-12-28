@@ -1,0 +1,75 @@
+﻿name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3-pip \
+          build-essential \
+          git \
+          zip \
+          unzip \
+          openjdk-17-jdk \
+          python3-dev \
+          autoconf \
+          libtool \
+          pkg-config \
+          zlib1g-dev \
+          libncurses5-dev \
+          libncursesw5-dev \
+          libtinfo5 \
+          cmake \
+          libffi-dev \
+          libssl-dev
+    
+    - name: Install Buildozer
+      run: |
+        pip3 install --upgrade pip
+        pip3 install buildozer cython
+    
+    - name: Create buildozer.spec
+      run: |
+        cat > buildozer.spec << 'EOF'
+        [app]
+        title = Тетрис Mobile
+        package.name = tetrismobile
+        package.domain = org.tetris
+        source.dir = .
+        source.include_exts = py,png,jpg,kv,atlas
+        version = 1.0
+        requirements = python3,pygame==2.5.2
+        orientation = portrait
+        fullscreen = 0
+        
+        [buildozer]
+        log_level = 2
+        warn_on_root = 1
+        EOF
+    
+    - name: Build APK
+      run: |
+        buildozer -v android debug
+    
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: tetris-apk
+        path: bin/*.apk
