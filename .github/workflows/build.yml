@@ -9,42 +9,66 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Setup Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9'
     
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
-        sudo apt update
-        sudo apt install -y python3-pip openjdk-17-jdk zip unzip
-        
-    - name: Install Buildozer
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3-pip \
+          git \
+          zip \
+          unzip \
+          openjdk-11-jdk \
+          python3-dev \
+          autoconf \
+          libtool \
+          pkg-config \
+          zlib1g-dev \
+          libncurses5-dev \
+          libncursesw5-dev \
+          libtinfo5 \
+          cmake \
+          libffi-dev \
+          libssl-dev
+    
+    - name: Install Python dependencies
       run: |
-        pip3 install buildozer cython
-        
+        python3 -m pip install --upgrade pip
+        pip3 install buildozer cython virtualenv
+    
     - name: Create buildozer.spec
       run: |
-        echo '[app]
+        cat > buildozer.spec << 'EOF'
+[app]
 title = Tetris Mobile
 package.name = tetrismobile
-package.domain = com.tetris
+package.domain = org.tetris
 source.dir = .
+source.include_exts = py,png,jpg,kv,atlas
 version = 1.0
-requirements = python3,pygame==2.5.2
+requirements = python3,kivy==2.3.0
 orientation = portrait
+fullscreen = 0
 
 [buildozer]
-log_level = 2' > buildozer.spec
-        
-    - name: Build APK
+log_level = 2
+warn_on_root = 1
+EOF
+    
+    - name: Build APK (debug)
       run: |
-        buildozer -v android debug
-        
-    - name: Upload APK
-      uses: actions/upload-artifact@v2
+        buildozer -v android debug 2>&1 | tail -50
+    
+    - name: Upload APK artifact
+      if: success()
+      uses: actions/upload-artifact@v3
       with:
         name: tetris-apk
         path: bin/*.apk
+        retention-days: 5
